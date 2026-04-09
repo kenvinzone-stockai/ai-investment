@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Investment Committee</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0c0f;
+  --bg2: #111318;
+  --bg3: #181c23;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #e8eaf0;
+  --muted: #6b7280;
+  --dim: #3a3f4a;
+
+  --claude-c: #34d399;
+  --claude-bg: rgba(52,211,153,0.08);
+  --gpt-c: #60a5fa;
+  --gpt-bg: rgba(96,165,250,0.08);
+  --gemini-c: #f59e0b;
+  --gemini-bg: rgba(245,158,11,0.08);
+  --devil-c: #f87171;
+  --devil-bg: rgba(248,113,113,0.08);
+  --verdict-c: #a78bfa;
+  --verdict-bg: rgba(167,139,250,0.1);
+
+  --accent: #6366f1;
+  --accent2: #818cf8;
+  --r: 10px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Sora', sans-serif; font-size: 14px; }
+
+/* Layout */
+.app { display: grid; grid-template-columns: 260px 1fr; grid-template-rows: 100vh; height: 100vh; overflow: hidden; }
+
+/* Sidebar */
+.sidebar { background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+
+.logo { padding: 20px; border-bottom: 1px solid var(--border); }
+.logo-mark { display: flex; align-items: center; gap: 10px; }
+.logo-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.logo-icon svg { width: 18px; height: 18px; fill: white; }
+.logo-text { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
+.logo-sub { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 1px; }
+
+.sidebar-section { padding: 16px; border-bottom: 1px solid var(--border); }
+.sidebar-label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+
+/* API Key */
+.api-wrap { position: relative; }
+.api-wrap input { width: 100%; background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px; padding: 8px 36px 8px 10px; font-size: 12px; font-family: 'DM Mono', monospace; color: var(--text); outline: none; }
+.api-wrap input:focus { border-color: var(--accent); }
+.api-wrap input::placeholder { color: var(--dim); }
+.api-eye { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--muted); padding: 2px; }
+.api-status { font-size: 10px; margin-top: 5px; font-family: 'DM Mono', monospace; }
+.api-status.ok { color: var(--claude-c); }
+.api-status.err { color: var(--devil-c); }
+
+/* Ticker */
+.ticker-wrap { display: flex; flex-direction: column; gap: 8px; }
+.ticker-input-row { display: flex; gap: 6px; }
+.ticker-input-row input { flex: 1; background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px; padding: 8px 10px; font-size: 13px; font-family: 'DM Mono', monospace; color: var(--text); outline: none; text-transform: uppercase; }
+.ticker-input-row input:focus { border-color: var(--accent); }
+.quick-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { font-size: 11px; font-family: 'DM Mono', monospace; padding: 3px 9px; border-radius: 20px; border: 1px solid var(--border2); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+.chip:hover { border-color: var(--accent2); color: var(--accent2); }
+
+/* Config */
+.config-rows { display: flex; flex-direction: column; gap: 8px; }
+.config-row { display: flex; justify-content: space-between; align-items: center; }
+.config-label { font-size: 12px; color: var(--muted); }
+.config-val { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--text); }
+.seg { display: flex; gap: 3px; background: var(--bg3); border-radius: 6px; padding: 3px; }
+.seg button { font-size: 11px; font-family: 'DM Mono', monospace; padding: 3px 9px; border-radius: 4px; border: none; background: none; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+.seg button.active { background: var(--accent); color: white; }
+
+/* Agents in sidebar */
+.agents-list { display: flex; flex-direction: column; gap: 6px; flex: 1; padding: 16px; overflow-y: auto; }
+.agent-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
+.agent-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.agent-dot.idle { background: var(--dim); }
+.agent-dot.thinking { animation: blink 0.8s ease-in-out infinite; }
+.agent-dot.done { }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+.agent-info { flex: 1; min-width: 0; }
+.agent-name { font-size: 12px; font-weight: 500; }
+.agent-role { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent-badge { font-size: 10px; font-family: 'DM Mono', monospace; padding: 2px 6px; border-radius: 4px; }
+
+/* Run button */
+.run-section { padding: 16px; border-top: 1px solid var(--border); }
+.run-btn { width: 100%; padding: 11px; border-radius: 10px; border: none; background: var(--accent); color: white; font-size: 13px; font-weight: 600; font-family: 'Sora', sans-serif; cursor: pointer; transition: all 0.2s; letter-spacing: -0.01em; }
+.run-btn:hover:not(:disabled) { background: var(--accent2); transform: translateY(-1px); }
+.run-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* Main panel */
+.main { display: flex; flex-direction: column; overflow: hidden; }
+
+/* Topbar */
+.topbar { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 16px; background: var(--bg2); }
+.topbar-ticker { font-size: 20px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--accent2); }
+.topbar-status { font-size: 12px; color: var(--muted); flex: 1; }
+.topbar-stats { display: flex; gap: 16px; }
+.stat { text-align: right; }
+.stat-val { font-size: 13px; font-weight: 500; font-family: 'DM Mono', monospace; color: var(--text); }
+.stat-label { font-size: 10px; color: var(--muted); }
+
+/* Chat */
+.chat-area { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; scroll-behavior: smooth; }
+.chat-area::-webkit-scrollbar { width: 4px; }
+.chat-area::-webkit-scrollbar-track { background: transparent; }
+.chat-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* Messages */
+.msg { display: flex; flex-direction: column; gap: 6px; animation: msgIn 0.25s ease; }
+@keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+.msg-header { display: flex; align-items: center; gap: 8px; }
+.msg-avatar { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; font-family: 'DM Mono', monospace; flex-shrink: 0; }
+.msg-meta { display: flex; align-items: baseline; gap: 6px; }
+.msg-name { font-size: 12px; font-weight: 500; }
+.msg-role-tag { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted); }
+.msg-round { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--dim); }
+.msg-body { margin-left: 34px; font-size: 13px; line-height: 1.7; color: #c8ccd6; background: var(--bg3); border-radius: 0 10px 10px 10px; padding: 12px 14px; border: 1px solid var(--border); }
+.msg-body.sys { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px; font-style: normal; border-style: dashed; border-radius: 6px; }
+.msg-body.verdict { background: var(--verdict-bg); border-color: rgba(167,139,250,0.25); }
+
+/* Verdict card */
+.verdict-panel { margin: 4px 0; padding: 14px 16px; background: var(--verdict-bg); border: 1px solid rgba(167,139,250,0.25); border-radius: 10px; }
+.verdict-title { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--verdict-c); letter-spacing: 0.06em; margin-bottom: 10px; }
+.verdict-decision { font-size: 22px; font-weight: 600; font-family: 'DM Mono', monospace; letter-spacing: -0.02em; margin-bottom: 10px; }
+.verdict-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+.vg-item { background: rgba(255,255,255,0.04); border-radius: 6px; padding: 8px 10px; }
+.vg-label { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 2px; }
+.vg-val { font-size: 13px; font-weight: 500; font-family: 'DM Mono', monospace; }
+.verdict-notes { font-size: 12px; color: #9ca3b0; line-height: 1.6; border-top: 1px solid var(--border); padding-top: 10px; }
+
+/* Typing */
+.typing-wrap { display: flex; align-items: center; gap: 8px; margin-left: 34px; padding: 10px 14px; background: var(--bg3); border: 1px solid var(--border); border-radius: 0 10px 10px 10px; width: fit-content; }
+.typing-dots { display: flex; gap: 4px; }
+.td { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); animation: tdBounce 1.2s ease-in-out infinite; }
+.td:nth-child(2) { animation-delay: 0.2s; }
+.td:nth-child(3) { animation-delay: 0.4s; }
+@keyframes tdBounce { 0%,60%,100%{transform:translateY(0);opacity:0.4} 30%{transform:translateY(-4px);opacity:1} }
+.typing-label { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+/* Empty state */
+.empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--dim); }
+.empty-icon { width: 48px; height: 48px; border: 1px solid var(--border2); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.empty-text { font-size: 13px; color: var(--muted); }
+.empty-hint { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--dim); }
+
+/* Progress bar */
+.progress-bar { height: 2px; background: var(--border); position: relative; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.4s ease; }
+
+/* Responsive */
+@media (max-width: 680px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .sidebar { max-height: 280px; overflow-y: auto; }
+  .agents-list { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">
+        <div class="logo-icon">
+          <svg viewBox="0 0 20 20"><path d="M10 2L3 7v6l7 5 7-5V7L10 2zm0 2.5L15 8v4l-5 3.5L5 12V8l5-3.5z"/></svg>
+        </div>
+        <div>
+          <div class="logo-text">AI Investment Committee</div>
+          <div class="logo-sub">Multi-agent · Powered by Claude</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Anthropic API Key</div>
+      <div class="api-wrap">
+        <input type="password" id="api-key" placeholder="sk-ant-..." oninput="checkKey()" />
+        <button class="api-eye" onclick="toggleKey()">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M10 4C5.5 4 2 10 2 10s3.5 6 8 6 8-6 8-6-3.5-6-8-6zm0 10a4 4 0 110-8 4 4 0 010 8z"/></svg>
+        </button>
+      </div>
+      <div class="api-status" id="api-status">Chưa nhập key</div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Mã phân tích</div>
+      <div class="ticker-wrap">
+        <div class="ticker-input-row">
+          <input type="text" id="ticker" placeholder="VNM, VIC, HPG..." maxlength="10" oninput="this.value=this.value.toUpperCase()" />
+        </div>
+        <div class="quick-chips">
+          <button class="chip" onclick="setTicker('VNM')">VNM</button>
+          <button class="chip" onclick="setTicker('VIC')">VIC</button>
+          <button class="chip" onclick="setTicker('HPG')">HPG</button>
+          <button class="chip" onclick="setTicker('MBB')">MBB</button>
+          <button class="chip" onclick="setTicker('FPT')">FPT</button>
+          <button class="chip" onclick="setTicker('VN30F')">VN30F</button>
+          <button class="chip" onclick="setTicker('TCB')">TCB</button>
+          <button class="chip" onclick="setTicker('VHM')">VHM</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Cấu hình</div>
+      <div class="config-rows">
+        <div class="config-row">
+          <span class="config-label">Số vòng thảo luận</span>
+          <div class="seg" id="rounds-seg">
+            <button onclick="setRounds(1)" class="">1</button>
+            <button onclick="setRounds(2)" class="active">2</button>
+            <button onclick="setRounds(3)" class="">3</button>
+          </div>
+        </div>
+        <div class="config-row">
+          <span class="config-label">Khung thời gian</span>
+          <div class="seg" id="frame-seg">
+            <button onclick="setFrame('intraday')" class="">1D</button>
+            <button onclick="setFrame('swing')" class="active">Swing</button>
+            <button onclick="setFrame('position')" class="">Dài</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="agents-list">
+      <div class="sidebar-label">Hội đồng chuyên gia</div>
+      <div class="agent-card" id="ag-claude">
+        <div class="agent-dot idle" id="dot-claude" style="background:var(--claude-c)"></div>
+        <div class="agent-info">
+          <div class="agent-name" style="color:var(--claude-c)">Claude</div>
+          <div class="agent-role">Fundamental Analysis</div>
+        </div>
+        <span class="agent-badge" style="background:var(--claude-bg);color:var(--claude-c)">CƠ BẢN</span>
+      </div>
+      <div class="agent-card" id="ag-gpt">
+        <div class="agent-dot idle" id="dot-gpt" style="background:var(--gpt-c)"></div>
+        <div class="agent-info">
+          <div class="agent-name" style="color:var(--gpt-c)">GPT-4o</div>
+          <div class="agent-role">Technical Analysis</div>
+        </div>
+        <span class="agent-badge" style="background:var(--gpt-bg);color:var(--gpt-c)">KỸ THUẬT</span>
+      </div>
+      <div class="agent-card" id="ag-gemini">
+        <div class="agent-dot idle" id="dot-gemini" style="background:var(--gemini-c)"></div>
+        <div class="agent-info">
+          <div class="agent-name" style="color:var(--gemini-c)">Gemini</div>
+          <div class="agent-role">Macro &amp; Sentiment</div>
+        </div>
+        <span class="agent-badge" style="background:var(--gemini-bg);color:var(--gemini-c)">VĨ MÔ</span>
+      </div>
+      <div class="agent-card" id="ag-devil">
+        <div class="agent-dot idle" id="dot-devil" style="background:var(--devil-c)"></div>
+        <div class="agent-info">
+          <div class="agent-name" style="color:var(--devil-c)">Devil's Advocate</div>
+          <div class="agent-role">Risk &amp; Counterpoint</div>
+        </div>
+        <span class="agent-badge" style="background:var(--devil-bg);color:var(--devil-c)">PHẢN BIỆN</span>
+      </div>
+    </div>
+
+    <div class="run-section">
+      <button class="run-btn" id="run-btn" onclick="startAnalysis()" disabled>
+        Bắt đầu phân tích
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+    <div class="topbar">
+      <div class="topbar-ticker" id="topbar-ticker">—</div>
+      <div class="topbar-status" id="topbar-status">Nhập mã và API key để bắt đầu</div>
+      <div class="topbar-stats" id="topbar-stats" style="display:none">
+        <div class="stat"><div class="stat-val" id="stat-round">0/0</div><div class="stat-label">Vòng</div></div>
+        <div class="stat"><div class="stat-val" id="stat-msgs">0</div><div class="stat-label">Tin nhắn</div></div>
+      </div>
+    </div>
+
+    <div class="chat-area" id="chat">
+      <div class="empty-state" id="empty">
+        <div class="empty-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <div class="empty-text">Hội đồng chưa họp</div>
+        <div class="empty-hint">← Nhập mã cổ phiếu + API key, bấm phân tích</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const AGENTS = [
+  {
+    id: 'claude', name: 'Claude', role: 'Fundamental', label: 'CƠ BẢN',
+    c: 'var(--claude-c)', bg: 'var(--claude-bg)',
+    persona: `Bạn là Claude — chuyên gia phân tích cơ bản (fundamental) tại một quỹ đầu tư chuyên nghiệp.
+Nhiệm vụ: phân tích chất lượng doanh nghiệp, P/E, P/B, ROE, dòng tiền, lợi thế cạnh tranh, ban lãnh đạo, triển vọng ngành.
+Phong cách: chuyên sâu, dữ liệu cụ thể, thận trọng. Kết luận rõ ràng BUY/SELL/HOLD với giá mục tiêu ước tính.
+Trả lời 150-200 từ. Ngắn gọn, súc tích. Không dùng bullet point quá nhiều.`
+  },
+  {
+    id: 'gpt', name: 'GPT-4o', role: 'Technical', label: 'KỸ THUẬT',
+    c: 'var(--gpt-c)', bg: 'var(--gpt-bg)',
+    persona: `Bạn là GPT-4o — chuyên gia phân tích kỹ thuật (technical) hàng đầu.
+Nhiệm vụ: xu hướng chart, hỗ trợ/kháng cự, RSI, MACD, volume, mẫu hình giá, momentum. Đưa ra entry, stop loss, target cụ thể.
+Phong cách: thực dụng, số liệu, dứt khoát. Ưu tiên tín hiệu kỹ thuật hơn câu chuyện.
+Trả lời 150-200 từ. Ngắn gọn, súc tích.`
+  },
+  {
+    id: 'gemini', name: 'Gemini', role: 'Macro', label: 'VĨ MÔ',
+    c: 'var(--gemini-c)', bg: 'var(--gemini-bg)',
+    persona: `Bạn là Gemini — chuyên gia vĩ mô và sentiment thị trường.
+Nhiệm vụ: bối cảnh kinh tế, lãi suất, tỷ giá, dòng tiền ngoại, tâm lý ngành, chu kỳ, rủi ro địa chính trị liên quan đến mã này.
+Phong cách: góc nhìn rộng, liên kết macro-micro, đề xuất khung thời gian phù hợp.
+Trả lời 150-200 từ. Ngắn gọn, súc tích.`
+  },
+  {
+    id: 'devil', name: "Devil's Advocate", role: 'Risk', label: 'PHẢN BIỆN',
+    c: 'var(--devil-c)', bg: 'var(--devil-bg)',
+    persona: `Bạn là Devil's Advocate — chuyên gia phản biện của hội đồng đầu tư.
+Nhiệm vụ: tìm MỌI LÝ DO tại sao quyết định của các chuyên gia khác có thể SAI. Kịch bản xấu nhất, rủi ro ẩn, điểm mù, thiên kiến xác nhận.
+Phong cách: hoài nghi, sắc bén, không ngại đối nghịch. Bạn KHÔNG đưa ra khuyến nghị — chỉ cảnh báo rủi ro.
+Trả lời 150-200 từ. Thẳng thắn, không ngoại giao.`
+  }
+];
+
+let rounds = 2;
+let frame = 'swing';
+let isRunning = false;
+let msgCount = 0;
+let history = [];
+
+function setRounds(n) {
+  rounds = n;
+  document.querySelectorAll('#rounds-seg button').forEach((b,i) => b.classList.toggle('active', i===n-1));
+}
+function setFrame(f) {
+  frame = f;
+  const labels = ['intraday','swing','position'];
+  document.querySelectorAll('#frame-seg button').forEach((b,i) => b.classList.toggle('active', labels[i]===f));
+}
+function setTicker(t) { document.getElementById('ticker').value = t; updateRunBtn(); }
+
+function checkKey() {
+  const k = document.getElementById('api-key').value.trim();
+  const s = document.getElementById('api-status');
+  if (!k) { s.textContent = 'Chưa nhập key'; s.className = 'api-status'; }
+  else if (k.startsWith('sk-ant-')) { s.textContent = '✓ Key hợp lệ'; s.className = 'api-status ok'; }
+  else { s.textContent = '✗ Định dạng không đúng (phải bắt đầu sk-ant-)'; s.className = 'api-status err'; }
+  updateRunBtn();
+}
+
+function toggleKey() {
+  const inp = document.getElementById('api-key');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function updateRunBtn() {
+  const key = document.getElementById('api-key').value.trim();
+  const tick = document.getElementById('ticker').value.trim();
+  document.getElementById('run-btn').disabled = !key.startsWith('sk-ant-') || !tick || isRunning;
+}
+
+document.getElementById('ticker').addEventListener('input', updateRunBtn);
+
+function setDot(id, state) {
+  const d = document.getElementById('dot-' + id);
+  if (!d) return;
+  d.className = 'agent-dot';
+  if (state === 'thinking') { d.classList.add('thinking'); d.style.background = 'var(--' + id + '-c)'; }
+  else if (state === 'idle') { d.style.background = 'var(--dim)'; }
+  else { d.style.background = 'var(--' + id + '-c)'; }
+}
+
+function clearChat() {
+  const chat = document.getElementById('chat');
+  chat.innerHTML = '';
+  msgCount = 0;
+}
+
+function addSysMsg(text) {
+  const chat = document.getElementById('chat');
+  const div = document.createElement('div');
+  div.className = 'msg';
+  div.innerHTML = `<div class="msg-body sys">${text}</div>`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function addMsg(agent, text, round, isVerdict) {
+  const chat = document.getElementById('chat');
+  msgCount++;
+  document.getElementById('stat-msgs').textContent = msgCount;
+
+  if (isVerdict) {
+    const lines = text.split('\n').filter(l => l.trim());
+    let decision = '', prob = '', entry = '', sl = '', tp = '', consensus = '', notes = [];
+    lines.forEach(l => {
+      const clean = l.replace(/\*\*/g,'').trim();
+      if (clean.includes('QUYẾT ĐỊNH:')) decision = clean.split(':')[1]?.trim() || '';
+      else if (clean.includes('XÁC SUẤT')) prob = clean.split(':')[1]?.trim() || '';
+      else if (clean.includes('VÀO LỆNH')) entry = clean.split(':')[1]?.trim() || '';
+      else if (clean.includes('STOP LOSS')) sl = clean.split(':')[1]?.trim() || '';
+      else if (clean.includes('MỤC TIÊU')) tp = clean.split(':')[1]?.trim() || '';
+      else if (clean.includes('ĐỒNG THUẬN')) consensus = clean.split(':')[1]?.trim() || '';
+      else if (clean.includes('LÝ DO') || clean.includes('RỦI RO')) notes.push(clean);
+    });
+
+    const decisionColor = decision.includes('MUA') ? '#34d399' : decision.includes('BÁN') ? '#f87171' : '#f59e0b';
+
+    const div = document.createElement('div');
+    div.className = 'msg';
+    div.innerHTML = `
+      <div class="msg-header">
+        <div class="msg-avatar" style="background:var(--verdict-bg);color:var(--verdict-c)">V</div>
+        <div class="msg-meta">
+          <span class="msg-name" style="color:var(--verdict-c)">Phán quyết Hội đồng</span>
+          <span class="msg-role-tag">Kết luận cuối cùng</span>
+        </div>
+      </div>
+      <div class="verdict-panel">
+        <div class="verdict-title">PHÁN QUYẾT · ${document.getElementById('ticker').value.toUpperCase()}</div>
+        <div class="verdict-decision" style="color:${decisionColor}">${decision || text.substring(0,80)}</div>
+        <div class="verdict-grid">
+          <div class="vg-item"><div class="vg-label">Xác suất</div><div class="vg-val" style="color:var(--verdict-c)">${prob || '—'}</div></div>
+          <div class="vg-item"><div class="vg-label">Entry</div><div class="vg-val">${entry || '—'}</div></div>
+          <div class="vg-item"><div class="vg-label">Stop Loss</div><div class="vg-val" style="color:var(--devil-c)">${sl || '—'}</div></div>
+          <div class="vg-item"><div class="vg-label">Mục tiêu</div><div class="vg-val" style="color:var(--claude-c)">${tp || '—'}</div></div>
+          <div class="vg-item" style="grid-column:span 2"><div class="vg-label">Đồng thuận HĐ</div><div class="vg-val">${consensus || '—'}</div></div>
+        </div>
+        <div class="verdict-notes">${notes.join('<br>') || text}</div>
+      </div>`;
+    chat.appendChild(div);
+  } else {
+    const div = document.createElement('div');
+    div.className = 'msg';
+    div.innerHTML = `
+      <div class="msg-header">
+        <div class="msg-avatar" style="background:${agent.bg};color:${agent.c}">${agent.name.substring(0,2)}</div>
+        <div class="msg-meta">
+          <span class="msg-name" style="color:${agent.c}">${agent.name}</span>
+          <span class="msg-role-tag">${agent.role}</span>
+          <span class="msg-round">Vòng ${round}</span>
+        </div>
+      </div>
+      <div class="msg-body">${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>`;
+    chat.appendChild(div);
+  }
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function showTyping(agent) {
+  const chat = document.getElementById('chat');
+  const div = document.createElement('div');
+  div.id = 'typing-' + agent.id;
+  div.className = 'msg';
+  div.innerHTML = `
+    <div class="msg-header">
+      <div class="msg-avatar" style="background:${agent.bg};color:${agent.c}">${agent.name.substring(0,2)}</div>
+      <div class="msg-meta">
+        <span class="msg-name" style="color:${agent.c}">${agent.name}</span>
+        <span class="msg-role-tag">đang phân tích...</span>
+      </div>
+    </div>
+    <div class="typing-wrap">
+      <div class="typing-dots"><div class="td"></div><div class="td"></div><div class="td"></div></div>
+      <span class="typing-label">${agent.role}</span>
+    </div>`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function removeTyping(id) {
+  const el = document.getElementById('typing-' + id);
+  if (el) el.remove();
+}
+
+async function callClaude(system, messages) {
+  const key = document.getElementById('api-key').value.trim();
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, system, messages })
+  });
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  const data = await res.json();
+  return data.content?.[0]?.text || '';
+}
+
+function setProgress(pct) {
+  document.getElementById('progress').style.width = pct + '%';
+}
+
+async function startAnalysis() {
+  const ticker = document.getElementById('ticker').value.trim().toUpperCase();
+  if (!ticker) return;
+
+  isRunning = true;
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('run-btn').textContent = 'Đang phân tích...';
+
+  clearChat();
+  document.getElementById('empty') && document.getElementById('empty').remove();
+
+  const frameLabel = {intraday:'Intraday (1 ngày)', swing:'Swing (1-4 tuần)', position:'Position (1-6 tháng)'}[frame];
+
+  document.getElementById('topbar-ticker').textContent = ticker;
+  document.getElementById('topbar-status').textContent = `Phiên phân tích đang diễn ra · ${frameLabel}`;
+  document.getElementById('topbar-stats').style.display = 'flex';
+  document.getElementById('stat-round').textContent = `0/${rounds}`;
+
+  history = [];
+  const agentMsgs = {};
+  AGENTS.forEach(a => { agentMsgs[a.id] = []; setDot(a.id, 'idle'); });
+
+  const totalSteps = AGENTS.length * rounds + 1;
+  let step = 0;
+
+  addSysMsg(`Phiên họp bắt đầu — Mã: <strong>${ticker}</strong> · ${rounds} vòng · ${frameLabel}`);
+
+  try {
+    for (let r = 1; r <= rounds; r++) {
+      document.getElementById('stat-round').textContent = `${r}/${rounds}`;
+      addSysMsg(`── Vòng ${r}/${rounds}: ${r === 1 ? 'Phân tích độc lập' : 'Phản biện & tổng hợp'} ──`);
+
+      for (const agent of AGENTS) {
+        setDot(agent.id, 'thinking');
+        showTyping(agent);
+
+        let prompt;
+        if (r === 1) {
+          prompt = `Hãy phân tích mã ${ticker} theo chuyên môn của bạn. Khung thời gian: ${frameLabel}. Đưa ra nhận định rõ ràng với lý do cụ thể.`;
+        } else {
+          const others = history.filter(m => m.agentId !== agent.id && m.round === r - 1)
+            .map(m => `${m.agentName} (${m.agentRole}): ${m.text}`).join('\n\n');
+          prompt = `Sau khi nghe ý kiến từ các chuyên gia khác về ${ticker}:\n\n${others}\n\nBạn đồng ý hay phản biện điểm nào? Có thay đổi nhận định không? Hãy phân tích thẳng thắn.`;
+        }
+
+        agentMsgs[agent.id].push({ role: 'user', content: prompt });
+        const reply = await callClaude(agent.persona, agentMsgs[agent.id]);
+        agentMsgs[agent.id].push({ role: 'assistant', content: reply });
+
+        removeTyping(agent.id);
+        addMsg(agent, reply, r, false);
+        history.push({ agentId: agent.id, agentName: agent.name, agentRole: agent.role, text: reply, round: r });
+        setDot(agent.id, 'done');
+
+        step++;
+        setProgress((step / totalSteps) * 90);
+        await new Promise(res => setTimeout(res, 200));
+      }
+    }
+
+    // Verdict
+    addSysMsg(`── Tổng hợp phán quyết cuối cùng ──`);
+    const verdictAgent = { id: 'verdict', name: 'Phán quyết', role: 'Kết luận', c: 'var(--verdict-c)', bg: 'var(--verdict-bg)' };
+    showTyping(verdictAgent);
+
+    const allText = history.map(m => `[Vòng ${m.round}] ${m.agentName} (${m.agentRole}):\n${m.text}`).join('\n\n---\n\n');
+    const verdictPrompt = `Bạn là Chủ tịch Hội đồng Đầu tư. Dựa trên thảo luận về mã ${ticker} (khung: ${frameLabel}):\n\n${allText}\n\nĐưa ra PHÁN QUYẾT CUỐI theo đúng format này (mỗi dòng 1 mục):\n\nQUYẾT ĐỊNH: [MUA / BÁN / GIỮ / KHÔNG VÀO LỆNH]\nXÁC SUẤT THÀNH CÔNG: [X%]\nVÀO LỆNH: [giá hoặc vùng giá]\nSTOP LOSS: [mức]\nMỤC TIÊU: [mức]\nLÝ DO CHÍNH: [2 câu ngắn]\nRỦI RO CẦN LƯU Ý: [1 câu]\nĐỒNG THUẬN HỘI ĐỒNG: [Cao / Trung bình / Thấp]`;
+
+    const verdict = await callClaude('Bạn là chủ tịch hội đồng đầu tư. Tổng hợp khách quan, súc tích, đúng format được yêu cầu.', [
+      { role: 'user', content: verdictPrompt }
+    ]);
+
+    removeTyping('verdict');
+    addMsg(null, verdict, 0, true);
+
+    setProgress(100);
+    document.getElementById('topbar-status').textContent = `Hoàn thành · ${new Date().toLocaleTimeString('vi-VN')}`;
+    step++;
+
+  } catch (err) {
+    AGENTS.forEach(a => removeTyping(a.id));
+    removeTyping('verdict');
+    addSysMsg(`Lỗi: ${err.message}. Kiểm tra lại API key hoặc kết nối mạng.`);
+    setProgress(0);
+  }
+
+  isRunning = false;
+  document.getElementById('run-btn').disabled = false;
+  document.getElementById('run-btn').textContent = 'Phân tích lại';
+  AGENTS.forEach(a => setDot(a.id, 'idle'));
+}
+</script>
+</body>
+</html>

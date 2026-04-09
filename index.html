@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Investment Committee v2</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0c0f; --bg2: #111318; --bg3: #181c23;
+  --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+  --text: #e8eaf0; --muted: #6b7280; --dim: #3a3f4a;
+  --claude-c: #34d399; --claude-bg: rgba(52,211,153,0.08);
+  --gpt-c: #60a5fa;   --gpt-bg: rgba(96,165,250,0.08);
+  --gemini-c: #f59e0b;--gemini-bg: rgba(245,158,11,0.08);
+  --devil-c: #f87171; --devil-bg: rgba(248,113,113,0.08);
+  --you-c: #e879f9;   --you-bg: rgba(232,121,249,0.08);
+  --verdict-c: #a78bfa;--verdict-bg: rgba(167,139,250,0.1);
+  --accent: #6366f1; --accent2: #818cf8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Sora', sans-serif; font-size: 14px; }
+.app { display: grid; grid-template-columns: 280px 1fr; height: 100vh; overflow: hidden; }
+
+/* SIDEBAR */
+.sidebar { background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
+.sidebar::-webkit-scrollbar { width: 3px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.logo { padding: 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.logo-mark { display: flex; align-items: center; gap: 10px; }
+.logo-icon { width: 30px; height: 30px; background: var(--accent); border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.logo-icon svg { width: 16px; height: 16px; fill: white; }
+.logo-text { font-size: 12px; font-weight: 600; }
+.logo-sub { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+.sb-sec { padding: 12px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.sb-label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 7px; }
+
+.api-wrap { position: relative; }
+.api-wrap input { width: 100%; background: var(--bg3); border: 1px solid var(--border2); border-radius: 7px; padding: 7px 30px 7px 9px; font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text); outline: none; }
+.api-wrap input:focus { border-color: var(--accent); }
+.api-wrap input::placeholder { color: var(--dim); }
+.api-eye { position: absolute; right: 7px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--muted); }
+.api-status { font-size: 10px; margin-top: 4px; font-family: 'DM Mono', monospace; color: var(--muted); }
+.api-status.ok { color: var(--claude-c); } .api-status.err { color: var(--devil-c); }
+
+.ticker-row { display: flex; gap: 5px; }
+.ticker-row input { flex: 1; background: var(--bg3); border: 1px solid var(--border2); border-radius: 7px; padding: 7px 9px; font-size: 13px; font-family: 'DM Mono', monospace; color: var(--text); outline: none; text-transform: uppercase; }
+.ticker-row input:focus { border-color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.chip { font-size: 10px; font-family: 'DM Mono', monospace; padding: 3px 8px; border-radius: 20px; border: 1px solid var(--border2); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+.chip:hover { border-color: var(--accent2); color: var(--accent2); }
+
+.seg { display: flex; gap: 2px; background: var(--bg3); border-radius: 6px; padding: 3px; }
+.seg button { flex: 1; font-size: 10px; font-family: 'DM Mono', monospace; padding: 3px 0; border-radius: 4px; border: none; background: none; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+.seg button.active { background: var(--accent); color: white; }
+.cfg-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
+.cfg-row:last-child { margin-bottom: 0; }
+.cfg-label { font-size: 11px; color: var(--muted); }
+
+/* Chart upload */
+.upload-zone { border: 1px dashed var(--border2); border-radius: 8px; padding: 14px; text-align: center; cursor: pointer; transition: all 0.15s; }
+.upload-zone:hover { border-color: var(--accent2); background: rgba(99,102,241,0.04); }
+.upload-zone.has-img { border-style: solid; border-color: var(--gpt-c); padding: 5px; }
+.uz-icon { font-size: 20px; margin-bottom: 5px; }
+.uz-text { font-size: 11px; color: var(--muted); line-height: 1.5; }
+#chart-preview { width: 100%; border-radius: 5px; display: none; max-height: 130px; object-fit: cover; }
+.chart-clear { display: none; margin-top: 5px; font-size: 10px; color: var(--devil-c); background: none; border: none; cursor: pointer; font-family: 'DM Mono', monospace; }
+.chart-hint { font-size: 10px; color: var(--dim); margin-top: 5px; font-family: 'DM Mono', monospace; line-height: 1.4; }
+
+/* Personal analysis */
+.personal-toggle { display: flex; align-items: center; gap: 7px; cursor: pointer; margin-bottom: 7px; }
+.toggle-switch { width: 32px; height: 18px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 9px; position: relative; transition: background 0.2s; flex-shrink: 0; }
+.toggle-switch.on { background: var(--you-c); border-color: var(--you-c); }
+.toggle-knob { width: 12px; height: 12px; background: var(--muted); border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: all 0.2s; }
+.toggle-switch.on .toggle-knob { left: 16px; background: white; }
+.toggle-label { font-size: 11px; color: var(--muted); }
+.personal-box { display: none; }
+.personal-box textarea { width: 100%; background: var(--bg3); border: 1px solid var(--border2); border-radius: 7px; padding: 8px 10px; font-size: 11px; font-family: 'Sora', sans-serif; color: var(--text); outline: none; resize: none; line-height: 1.6; min-height: 80px; }
+.personal-box textarea:focus { border-color: var(--you-c); }
+.personal-box textarea::placeholder { color: var(--dim); font-size: 11px; }
+.personal-hint { font-size: 10px; color: var(--dim); margin-top: 4px; font-family: 'DM Mono', monospace; }
+
+/* Agents */
+.agents-wrap { padding: 12px 14px; flex-shrink: 0; }
+.agent-card { border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.agent-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: var(--dim); }
+.agent-dot.thinking { animation: blink 0.8s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }
+.agent-info { flex: 1; min-width: 0; }
+.agent-name { font-size: 11px; font-weight: 500; }
+.agent-role { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; }
+.agent-badge { font-size: 9px; font-family: 'DM Mono', monospace; padding: 2px 5px; border-radius: 3px; white-space: nowrap; }
+
+.run-section { padding: 12px 14px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.run-btn { width: 100%; padding: 10px; border-radius: 9px; border: none; background: var(--accent); color: white; font-size: 13px; font-weight: 600; font-family: 'Sora', sans-serif; cursor: pointer; transition: all 0.2s; }
+.run-btn:hover:not(:disabled) { background: var(--accent2); transform: translateY(-1px); }
+.run-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* MAIN */
+.main { display: flex; flex-direction: column; overflow: hidden; }
+.progress-bar { height: 2px; background: var(--border); flex-shrink: 0; }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.4s ease; }
+.topbar { padding: 13px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: var(--bg2); flex-shrink: 0; }
+.topbar-ticker { font-size: 18px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--accent2); }
+.topbar-status { font-size: 11px; color: var(--muted); flex: 1; }
+.stat-val { font-size: 12px; font-weight: 500; font-family: 'DM Mono', monospace; }
+.stat-label { font-size: 10px; color: var(--muted); }
+
+.chat-area { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 11px; scroll-behavior: smooth; }
+.chat-area::-webkit-scrollbar { width: 3px; }
+.chat-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.msg { display: flex; flex-direction: column; gap: 5px; animation: msgIn 0.2s ease; }
+@keyframes msgIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
+.msg-header { display: flex; align-items: center; gap: 7px; }
+.msg-avatar { width: 24px; height: 24px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; font-family: 'DM Mono', monospace; flex-shrink: 0; }
+.msg-name { font-size: 12px; font-weight: 500; }
+.msg-role-tag { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted); }
+.msg-round { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--dim); }
+.msg-body { margin-left: 31px; font-size: 13px; line-height: 1.7; color: #c8ccd6; background: var(--bg3); border-radius: 0 9px 9px 9px; padding: 11px 13px; border: 1px solid var(--border); }
+.msg-body.sys { background: transparent; border-style: dashed; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px; border-radius: 5px; }
+.msg-body.you-msg { border-color: rgba(232,121,249,0.25); background: rgba(232,121,249,0.04); }
+.msg-chart-preview { margin-left: 31px; margin-top: 5px; }
+.msg-chart-preview img { max-width: 300px; max-height: 160px; border-radius: 7px; border: 1px solid var(--border2); object-fit: cover; display: block; }
+
+.verdict-panel { margin: 2px 0; padding: 13px 14px; background: var(--verdict-bg); border: 1px solid rgba(167,139,250,0.2); border-radius: 10px; }
+.verdict-title { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--verdict-c); letter-spacing: 0.07em; margin-bottom: 8px; }
+.verdict-decision { font-size: 20px; font-weight: 600; font-family: 'DM Mono', monospace; margin-bottom: 10px; }
+.verdict-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 10px; }
+.vg-item { background: rgba(255,255,255,0.03); border-radius: 6px; padding: 7px 8px; }
+.vg-label { font-size: 9px; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 2px; }
+.vg-val { font-size: 12px; font-weight: 500; font-family: 'DM Mono', monospace; }
+.verdict-notes { font-size: 12px; color: #9ca3b0; line-height: 1.65; border-top: 1px solid var(--border); padding-top: 9px; }
+
+.typing-wrap { display: flex; align-items: center; gap: 7px; margin-left: 31px; padding: 9px 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: 0 9px 9px 9px; width: fit-content; }
+.typing-dots { display: flex; gap: 3px; }
+.td { width: 4px; height: 4px; border-radius: 50%; background: var(--muted); animation: tdB 1.2s ease-in-out infinite; }
+.td:nth-child(2){animation-delay:.2s} .td:nth-child(3){animation-delay:.4s}
+@keyframes tdB { 0%,60%,100%{transform:translateY(0);opacity:.4} 30%{transform:translateY(-3px);opacity:1} }
+.typing-label { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+.empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+
+@media(max-width:680px){
+  .app { grid-template-columns:1fr; grid-template-rows:auto 1fr; }
+  .sidebar { max-height:340px; }
+  .agents-wrap { display:none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">
+        <div class="logo-icon"><svg viewBox="0 0 20 20"><path d="M10 2L3 7v6l7 5 7-5V7L10 2zm0 2.5L15 8v4l-5 3.5L5 12V8l5-3.5z"/></svg></div>
+        <div><div class="logo-text">AI Investment Committee</div><div class="logo-sub">v2.0 · Chart + CEO Input</div></div>
+      </div>
+    </div>
+
+    <div class="sb-sec">
+      <div class="sb-label">Anthropic API Key</div>
+      <div class="api-wrap">
+        <input type="password" id="api-key" placeholder="sk-ant-..." oninput="checkKey()" />
+        <button class="api-eye" onclick="toggleKey()">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor"><path d="M10 4C5.5 4 2 10 2 10s3.5 6 8 6 8-6 8-6-3.5-6-8-6zm0 10a4 4 0 110-8 4 4 0 010 8z"/></svg>
+        </button>
+      </div>
+      <div class="api-status" id="api-status">Chưa nhập key</div>
+    </div>
+
+    <div class="sb-sec">
+      <div class="sb-label">Mã phân tích</div>
+      <div class="ticker-row">
+        <input type="text" id="ticker" placeholder="VNM, HPG, VN30F..." maxlength="10" oninput="this.value=this.value.toUpperCase();updateRunBtn()" />
+      </div>
+      <div class="chips">
+        <button class="chip" onclick="setTicker('VNM')">VNM</button>
+        <button class="chip" onclick="setTicker('VIC')">VIC</button>
+        <button class="chip" onclick="setTicker('HPG')">HPG</button>
+        <button class="chip" onclick="setTicker('MBB')">MBB</button>
+        <button class="chip" onclick="setTicker('FPT')">FPT</button>
+        <button class="chip" onclick="setTicker('VN30F')">VN30F</button>
+        <button class="chip" onclick="setTicker('TCB')">TCB</button>
+        <button class="chip" onclick="setTicker('VHM')">VHM</button>
+      </div>
+    </div>
+
+    <!-- CHART UPLOAD -->
+    <div class="sb-sec">
+      <div class="sb-label">Biểu đồ TradingView</div>
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('chart-file').click()">
+        <input type="file" id="chart-file" accept="image/*" style="display:none" onchange="handleChart(event)" />
+        <div id="uz-placeholder">
+          <div class="uz-icon">📊</div>
+          <div class="uz-text">Chụp màn hình chart<br>bấm để upload</div>
+        </div>
+        <img id="chart-preview" />
+      </div>
+      <button class="chart-clear" id="chart-clear" onclick="clearChart()">✕ Xoá ảnh chart</button>
+      <div class="chart-hint">GPT-4o sẽ đọc trực tiếp biểu đồ này để phân tích kỹ thuật chính xác hơn</div>
+    </div>
+
+    <!-- PERSONAL ANALYSIS -->
+    <div class="sb-sec">
+      <div class="sb-label">Nhận định cá nhân (CEO)</div>
+      <div class="personal-toggle" onclick="togglePersonal()">
+        <div class="toggle-switch" id="ptoggle"><div class="toggle-knob"></div></div>
+        <span class="toggle-label" id="ptoggle-label">Tắt — bật để thêm nhận định của bạn</span>
+      </div>
+      <div class="personal-box" id="personal-box">
+        <textarea id="personal-text" placeholder="Viết nhận định của bạn về mã này... Ví dụ: Tôi thấy HPG đang tích lũy tốt tại 24k, volume tăng dần, ngành thép đang hồi phục. Tôi nghiêng về mua nhưng lo lãi suất còn cao..." rows="5"></textarea>
+        <div class="personal-hint">Hội đồng sẽ tranh luận và phản biện trực tiếp quan điểm này của bạn</div>
+      </div>
+    </div>
+
+    <div class="sb-sec">
+      <div class="sb-label">Cấu hình</div>
+      <div class="cfg-row">
+        <span class="cfg-label">Số vòng thảo luận</span>
+        <div class="seg" id="rounds-seg">
+          <button onclick="setRounds(1)">1</button>
+          <button onclick="setRounds(2)" class="active">2</button>
+          <button onclick="setRounds(3)">3</button>
+        </div>
+      </div>
+      <div class="cfg-row">
+        <span class="cfg-label">Khung thời gian</span>
+        <div class="seg" id="frame-seg">
+          <button onclick="setFrame('intraday')">1D</button>
+          <button onclick="setFrame('swing')" class="active">Swing</button>
+          <button onclick="setFrame('position')">Dài</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="agents-wrap">
+      <div class="sb-label">Hội đồng chuyên gia</div>
+      <div class="agent-card"><div class="agent-dot" id="dot-claude" style="background:var(--claude-c)"></div><div class="agent-info"><div class="agent-name" style="color:var(--claude-c)">Claude</div><div class="agent-role">Fundamental Analysis</div></div><span class="agent-badge" style="background:var(--claude-bg);color:var(--claude-c)">CƠ BẢN</span></div>
+      <div class="agent-card"><div class="agent-dot" id="dot-gpt" style="background:var(--gpt-c)"></div><div class="agent-info"><div class="agent-name" style="color:var(--gpt-c)">GPT-4o</div><div class="agent-role">Technical + Chart Reader</div></div><span class="agent-badge" style="background:var(--gpt-bg);color:var(--gpt-c)">KỸ THUẬT</span></div>
+      <div class="agent-card"><div class="agent-dot" id="dot-gemini" style="background:var(--gemini-c)"></div><div class="agent-info"><div class="agent-name" style="color:var(--gemini-c)">Gemini</div><div class="agent-role">Macro & Sentiment</div></div><span class="agent-badge" style="background:var(--gemini-bg);color:var(--gemini-c)">VĨ MÔ</span></div>
+      <div class="agent-card"><div class="agent-dot" id="dot-devil" style="background:var(--devil-c)"></div><div class="agent-info"><div class="agent-name" style="color:var(--devil-c)">Devil's Advocate</div><div class="agent-role">Risk & Counterpoint</div></div><span class="agent-badge" style="background:var(--devil-bg);color:var(--devil-c)">PHẢN BIỆN</span></div>
+      <div class="agent-card" id="you-card" style="display:none"><div class="agent-dot" style="background:var(--you-c)"></div><div class="agent-info"><div class="agent-name" style="color:var(--you-c)">Bạn (CEO)</div><div class="agent-role">Nhận định cá nhân</div></div><span class="agent-badge" style="background:var(--you-bg);color:var(--you-c)">CEO</span></div>
+    </div>
+
+    <div class="run-section">
+      <button class="run-btn" id="run-btn" onclick="startAnalysis()" disabled>Bắt đầu phân tích</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+    <div class="topbar">
+      <div class="topbar-ticker" id="topbar-ticker">—</div>
+      <div class="topbar-status" id="topbar-status">Nhập mã và API key để bắt đầu</div>
+      <div id="topbar-stats" style="display:none;display:flex;gap:14px">
+        <div><div class="stat-val" id="stat-round">0/0</div><div class="stat-label">Vòng</div></div>
+        <div><div class="stat-val" id="stat-msgs">0</div><div class="stat-label">Tin</div></div>
+      </div>
+    </div>
+    <div class="chat-area" id="chat">
+      <div class="empty-state" id="empty">
+        <div style="width:44px;height:44px;border:1px solid var(--border2);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--dim)" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">Hội đồng chưa họp</div>
+        <div style="font-size:10px;color:var(--dim);font-family:'DM Mono',monospace;text-align:center">← Nhập mã · Upload chart TradingView<br>Thêm nhận định của bạn · Bấm phân tích</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const AGENTS = [
+  { id:'claude', name:'Claude', role:'Fundamental', c:'var(--claude-c)', bg:'var(--claude-bg)',
+    persona:`Bạn là Claude — chuyên gia phân tích cơ bản (fundamental) tại quỹ đầu tư chuyên nghiệp.
+Nhiệm vụ: chất lượng doanh nghiệp, P/E, P/B, ROE, dòng tiền tự do, lợi thế cạnh tranh, ban lãnh đạo, triển vọng ngành, định giá nội tại.
+Nếu CEO cung cấp nhận định cá nhân, hãy đánh giá và phản biện trực tiếp quan điểm đó dựa trên fundamentals.
+Phong cách: chuyên sâu, dữ liệu cụ thể, thận trọng. Kết luận BUY/SELL/HOLD với giá mục tiêu ước tính.
+Trả lời 150-200 từ, súc tích, không bullet point dài dòng.`
+  },
+  { id:'gpt', name:'GPT-4o', role:'Technical', c:'var(--gpt-c)', bg:'var(--gpt-bg)',
+    persona:`Bạn là GPT-4o — chuyên gia phân tích kỹ thuật hàng đầu với khả năng đọc biểu đồ.
+Nhiệm vụ: xu hướng chart, hỗ trợ/kháng cự, RSI, MACD, volume, momentum, mẫu hình giá. Đưa ra entry point, stop loss, target cụ thể.
+Nếu có ảnh biểu đồ được cung cấp, hãy mô tả cụ thể những gì bạn thấy trong chart đó (xu hướng, mẫu hình, chỉ báo) và phân tích dựa trên đó.
+Nếu CEO cung cấp nhận định, hãy đồng ý hoặc phản biện dựa trên bằng chứng kỹ thuật.
+Phong cách: thực dụng, số liệu, dứt khoát. Trả lời 150-200 từ.`
+  },
+  { id:'gemini', name:'Gemini', role:'Macro', c:'var(--gemini-c)', bg:'var(--gemini-bg)',
+    persona:`Bạn là Gemini — chuyên gia vĩ mô và sentiment thị trường.
+Nhiệm vụ: bối cảnh kinh tế, lãi suất, tỷ giá USD/VND, dòng tiền ngoại, tâm lý ngành, chu kỳ kinh tế, rủi ro địa chính trị liên quan đến mã này.
+Nếu CEO cung cấp nhận định, hãy bổ sung hoặc phản biện từ góc độ macro.
+Phong cách: góc nhìn rộng, liên kết macro-micro, đề xuất khung thời gian phù hợp. Trả lời 150-200 từ.`
+  },
+  { id:'devil', name:"Devil's Advocate", role:'Risk', c:'var(--devil-c)', bg:'var(--devil-bg)',
+    persona:`Bạn là Devil's Advocate — chuyên gia phản biện của hội đồng đầu tư.
+Nhiệm vụ: tìm MỌI LÝ DO tại sao quyết định có thể SAI. Kịch bản xấu nhất, rủi ro ẩn, điểm mù, thiên kiến xác nhận.
+Nếu CEO cung cấp nhận định cá nhân, đây là ưu tiên số 1 — hãy thách thức và phản biện trực tiếp, chỉ ra những gì CEO có thể đang bỏ qua hoặc sai.
+Phong cách: hoài nghi, sắc bén, thẳng thắn. KHÔNG đưa ra khuyến nghị — chỉ cảnh báo rủi ro. Trả lời 150-200 từ.`
+  }
+];
+
+let rounds=2, frame='swing', isRunning=false, msgCount=0, history=[];
+let chartB64=null, chartMime=null, personalOn=false;
+
+function setRounds(n) { rounds=n; document.querySelectorAll('#rounds-seg button').forEach((b,i)=>b.classList.toggle('active',i===n-1)); }
+function setFrame(f) { frame=f; const l=['intraday','swing','position']; document.querySelectorAll('#frame-seg button').forEach((b,i)=>b.classList.toggle('active',l[i]===f)); }
+function setTicker(t) { document.getElementById('ticker').value=t; updateRunBtn(); }
+
+function checkKey() {
+  const k=document.getElementById('api-key').value.trim(), s=document.getElementById('api-status');
+  if(!k){s.textContent='Chưa nhập key';s.className='api-status';}
+  else if(k.startsWith('sk-ant-')){s.textContent='✓ Key hợp lệ';s.className='api-status ok';}
+  else{s.textContent='✗ Phải bắt đầu bằng sk-ant-';s.className='api-status err';}
+  updateRunBtn();
+}
+function toggleKey(){ const i=document.getElementById('api-key'); i.type=i.type==='password'?'text':'password'; }
+function updateRunBtn(){
+  const key=document.getElementById('api-key').value.trim(), tick=document.getElementById('ticker').value.trim();
+  document.getElementById('run-btn').disabled=!key.startsWith('sk-ant-')||!tick||isRunning;
+}
+document.getElementById('ticker').addEventListener('input',updateRunBtn);
+
+function togglePersonal(){
+  personalOn=!personalOn;
+  const sw=document.getElementById('ptoggle'), box=document.getElementById('personal-box'), lbl=document.getElementById('ptoggle-label'), yc=document.getElementById('you-card');
+  sw.classList.toggle('on',personalOn);
+  box.style.display=personalOn?'block':'none';
+  yc.style.display=personalOn?'flex':'none';
+  lbl.textContent=personalOn?'Bật — nhận định của bạn sẽ được đưa vào thảo luận':'Tắt — bật để thêm nhận định của bạn';
+}
+
+function handleChart(e){
+  const file=e.target.files[0]; if(!file) return;
+  chartMime=file.type;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const data=ev.target.result;
+    chartB64=data.split(',')[1];
+    const prev=document.getElementById('chart-preview');
+    prev.src=data; prev.style.display='block';
+    document.getElementById('uz-placeholder').style.display='none';
+    document.getElementById('chart-clear').style.display='block';
+    document.getElementById('upload-zone').classList.add('has-img');
+    document.getElementById('upload-zone').onclick=null;
+  };
+  r.readAsDataURL(file);
+}
+function clearChart(){
+  chartB64=null; chartMime=null;
+  document.getElementById('chart-preview').style.display='none';
+  document.getElementById('uz-placeholder').style.display='block';
+  document.getElementById('chart-clear').style.display='none';
+  document.getElementById('chart-file').value='';
+  document.getElementById('upload-zone').classList.remove('has-img');
+  document.getElementById('upload-zone').onclick=()=>document.getElementById('chart-file').click();
+}
+
+function setDot(id,state){
+  const d=document.getElementById('dot-'+id); if(!d) return;
+  d.className='agent-dot'+(state==='thinking'?' thinking':'');
+  const c={claude:'var(--claude-c)',gpt:'var(--gpt-c)',gemini:'var(--gemini-c)',devil:'var(--devil-c)'};
+  d.style.background=state==='idle'?'var(--dim)':(c[id]||'var(--dim)');
+}
+function clearChat(){ document.getElementById('chat').innerHTML=''; msgCount=0; }
+
+function addSysMsg(text){
+  const chat=document.getElementById('chat'), div=document.createElement('div');
+  div.className='msg';
+  div.innerHTML=`<div class="msg-body sys">${text}</div>`;
+  chat.appendChild(div); chat.scrollTop=chat.scrollHeight;
+}
+
+function addYouMsg(ticker,text,chartSrc){
+  const chat=document.getElementById('chat'); msgCount++;
+  const div=document.createElement('div'); div.className='msg';
+  div.innerHTML=`
+    <div class="msg-header">
+      <div class="msg-avatar" style="background:var(--you-bg);color:var(--you-c)">CEO</div>
+      <span class="msg-name" style="color:var(--you-c)">Bạn (CEO)</span>
+      <span class="msg-role-tag">Nhận định cá nhân</span>
+    </div>
+    <div class="msg-body you-msg"><strong>${ticker}</strong> — ${text.replace(/\n/g,'<br>')}</div>
+    ${chartSrc?`<div class="msg-chart-preview"><img src="${chartSrc}" alt="Chart TradingView"/></div>`:''}
+  `;
+  chat.appendChild(div); chat.scrollTop=chat.scrollHeight;
+}
+
+function addMsg(agent,text,round,isVerdict){
+  const chat=document.getElementById('chat'); msgCount++;
+  document.getElementById('stat-msgs').textContent=msgCount;
+  if(isVerdict){
+    const lines=text.split('\n').filter(l=>l.trim());
+    let decision='',prob='',entry='',sl='',tp='',consensus='',ceoVerdict='',notes=[];
+    lines.forEach(l=>{
+      const c=l.replace(/\*\*/g,'').trim();
+      if(c.includes('QUYẾT ĐỊNH:')) decision=c.split(':').slice(1).join(':').trim();
+      else if(c.includes('XÁC SUẤT')) prob=c.split(':').slice(1).join(':').trim();
+      else if(c.includes('VÀO LỆNH')) entry=c.split(':').slice(1).join(':').trim();
+      else if(c.includes('STOP LOSS')) sl=c.split(':').slice(1).join(':').trim();
+      else if(c.includes('MỤC TIÊU')) tp=c.split(':').slice(1).join(':').trim();
+      else if(c.includes('ĐỒNG THUẬN')) consensus=c.split(':').slice(1).join(':').trim();
+      else if(c.includes('NHẬN ĐỊNH CEO')) ceoVerdict=c.split(':').slice(1).join(':').trim();
+      else if(c.includes('LÝ DO')||c.includes('RỦI RO')) notes.push(c);
+    });
+    const dc=decision.includes('MUA')?'#34d399':decision.includes('BÁN')?'#f87171':'#f59e0b';
+    const div=document.createElement('div'); div.className='msg';
+    div.innerHTML=`
+      <div class="msg-header">
+        <div class="msg-avatar" style="background:var(--verdict-bg);color:var(--verdict-c)">V</div>
+        <span class="msg-name" style="color:var(--verdict-c)">Phán quyết Hội đồng</span>
+        <span class="msg-role-tag">Kết luận cuối cùng</span>
+      </div>
+      <div class="verdict-panel">
+        <div class="verdict-title">PHÁN QUYẾT · ${document.getElementById('ticker').value.toUpperCase()}</div>
+        <div class="verdict-decision" style="color:${dc}">${decision||'—'}</div>
+        <div class="verdict-grid">
+          <div class="vg-item"><div class="vg-label">Xác suất</div><div class="vg-val" style="color:var(--verdict-c)">${prob||'—'}</div></div>
+          <div class="vg-item"><div class="vg-label">Entry</div><div class="vg-val">${entry||'—'}</div></div>
+          <div class="vg-item"><div class="vg-label">Stop Loss</div><div class="vg-val" style="color:var(--devil-c)">${sl||'—'}</div></div>
+          <div class="vg-item"><div class="vg-label">Mục tiêu</div><div class="vg-val" style="color:var(--claude-c)">${tp||'—'}</div></div>
+          <div class="vg-item" style="grid-column:span ${ceoVerdict?'1':'2'}"><div class="vg-label">Đồng thuận HĐ</div><div class="vg-val">${consensus||'—'}</div></div>
+          ${ceoVerdict?`<div class="vg-item"><div class="vg-label">Nhận định CEO</div><div class="vg-val" style="color:var(--you-c);font-size:10px">${ceoVerdict}</div></div>`:''}
+        </div>
+        <div class="verdict-notes">${notes.join('<br>')||text}</div>
+      </div>`;
+    chat.appendChild(div);
+  } else {
+    const div=document.createElement('div'); div.className='msg';
+    div.innerHTML=`
+      <div class="msg-header">
+        <div class="msg-avatar" style="background:${agent.bg};color:${agent.c}">${agent.name.substring(0,2)}</div>
+        <span class="msg-name" style="color:${agent.c}">${agent.name}</span>
+        <span class="msg-role-tag">${agent.role}</span>
+        <span class="msg-round">Vòng ${round}</span>
+      </div>
+      <div class="msg-body">${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>`;
+    chat.appendChild(div);
+  }
+  chat.scrollTop=chat.scrollHeight;
+}
+
+function showTyping(agent){
+  const chat=document.getElementById('chat'), div=document.createElement('div');
+  div.id='typing-'+agent.id; div.className='msg';
+  div.innerHTML=`
+    <div class="msg-header">
+      <div class="msg-avatar" style="background:${agent.bg};color:${agent.c}">${agent.name.substring(0,2)}</div>
+      <span class="msg-name" style="color:${agent.c}">${agent.name}</span>
+      <span class="msg-role-tag">đang phân tích...</span>
+    </div>
+    <div class="typing-wrap">
+      <div class="typing-dots"><div class="td"></div><div class="td"></div><div class="td"></div></div>
+      <span class="typing-label">${agent.role}</span>
+    </div>`;
+  chat.appendChild(div); chat.scrollTop=chat.scrollHeight;
+}
+function removeTyping(id){ const el=document.getElementById('typing-'+id); if(el) el.remove(); }
+
+async function callClaude(system,messages){
+  const key=document.getElementById('api-key').value.trim();
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system,messages})
+  });
+  if(!res.ok) throw new Error(`API error ${res.status}`);
+  const data=await res.json();
+  return data.content?.[0]?.text||'';
+}
+function setProgress(pct){ document.getElementById('progress').style.width=pct+'%'; }
+
+async function startAnalysis(){
+  const ticker=document.getElementById('ticker').value.trim().toUpperCase(); if(!ticker) return;
+  const personalText=personalOn?document.getElementById('personal-text').value.trim():'';
+  const hasChart=!!chartB64;
+
+  isRunning=true;
+  document.getElementById('run-btn').disabled=true;
+  document.getElementById('run-btn').textContent='Đang phân tích...';
+  clearChat();
+  document.getElementById('empty')&&document.getElementById('empty').remove();
+
+  const frameLabel={intraday:'Intraday (1 ngày)',swing:'Swing (1-4 tuần)',position:'Position (1-6 tháng)'}[frame];
+  document.getElementById('topbar-ticker').textContent=ticker;
+  document.getElementById('topbar-status').textContent=`Phiên phân tích · ${frameLabel}${hasChart?' · Có chart':''}${personalOn&&personalText?' · Có nhận định CEO':''}`;
+  document.getElementById('topbar-stats').style.display='flex';
+  document.getElementById('stat-round').textContent=`0/${rounds}`;
+
+  history=[]; const agentMsgs={};
+  AGENTS.forEach(a=>{ agentMsgs[a.id]=[]; setDot(a.id,'idle'); });
+
+  addSysMsg(`Phiên họp bắt đầu — <strong>${ticker}</strong> · ${rounds} vòng · ${frameLabel}`);
+
+  if(personalOn&&personalText){
+    const chartSrc=chartB64?`data:${chartMime};base64,${chartB64}`:null;
+    addYouMsg(ticker,personalText,chartSrc);
+    addSysMsg('Hội đồng sẽ phân tích và phản biện nhận định của CEO cùng với chart được cung cấp');
+  } else if(hasChart){
+    addSysMsg('Chart TradingView đã được tải lên — GPT-4o sẽ đọc và phân tích kỹ thuật từ biểu đồ này');
+  }
+
+  const ceoContext=personalOn&&personalText
+    ? `\n\nNHẬN ĐỊNH CÁ NHÂN CỦA CEO (người ra quyết định cuối):\n"${personalText}"\n\nHãy phân tích, đánh giá và phản biện trực tiếp quan điểm này trong câu trả lời của bạn.`
+    : '';
+
+  try {
+    const totalSteps=AGENTS.length*rounds+1; let step=0;
+
+    for(let r=1;r<=rounds;r++){
+      document.getElementById('stat-round').textContent=`${r}/${rounds}`;
+      addSysMsg(`── Vòng ${r}/${rounds}: ${r===1?'Phân tích độc lập':'Phản biện & tổng hợp'} ──`);
+
+      for(const agent of AGENTS){
+        setDot(agent.id,'thinking'); showTyping(agent);
+
+        let userContent;
+        if(r===1){
+          const basePrompt=`Hãy phân tích mã ${ticker} theo chuyên môn của bạn. Khung thời gian: ${frameLabel}.${hasChart?' Có ảnh biểu đồ kỹ thuật đính kèm.':''}${ceoContext}\nĐưa ra nhận định rõ ràng với lý do cụ thể.`;
+          if(agent.id==='gpt'&&hasChart){
+            userContent=[
+              {type:'text',text:basePrompt},
+              {type:'image',source:{type:'base64',media_type:chartMime,data:chartB64}}
+            ];
+          } else { userContent=basePrompt; }
+        } else {
+          const others=history.filter(m=>m.agentId!==agent.id&&m.round===r-1)
+            .map(m=>`${m.agentName} (${m.agentRole}): ${m.text}`).join('\n\n');
+          userContent=`Sau khi nghe ý kiến từ các chuyên gia khác về ${ticker}:\n\n${others}\n\nBạn đồng ý hay phản biện điểm nào? Hãy phân tích thẳng thắn và cập nhật nhận định.`;
+        }
+
+        agentMsgs[agent.id].push({role:'user',content:userContent});
+        const reply=await callClaude(agent.persona,agentMsgs[agent.id]);
+        agentMsgs[agent.id].push({role:'assistant',content:reply});
+
+        removeTyping(agent.id);
+        addMsg(agent,reply,r,false);
+        history.push({agentId:agent.id,agentName:agent.name,agentRole:agent.role,text:reply,round:r});
+        setDot(agent.id,'done');
+        step++; setProgress((step/totalSteps)*90);
+        await new Promise(res=>setTimeout(res,200));
+      }
+    }
+
+    addSysMsg('── Tổng hợp phán quyết cuối cùng ──');
+    const va={id:'verdict',name:'Phán quyết',role:'Kết luận',c:'var(--verdict-c)',bg:'var(--verdict-bg)'};
+    showTyping(va);
+
+    const allText=history.map(m=>`[Vòng ${m.round}] ${m.agentName} (${m.agentRole}):\n${m.text}`).join('\n\n---\n\n');
+    const verdictPrompt=`Bạn là Chủ tịch Hội đồng Đầu tư. Dựa trên thảo luận về ${ticker} (${frameLabel}):\n\n${allText}\n\n${personalOn&&personalText?`Nhận định ban đầu của CEO: "${personalText}"\n\n`:''}Đưa ra PHÁN QUYẾT CUỐI theo đúng format (mỗi mục 1 dòng):\n\nQUYẾT ĐỊNH: [MUA / BÁN / GIỮ / KHÔNG VÀO LỆNH]\nXÁC SUẤT THÀNH CÔNG: [X%]\nVÀO LỆNH: [giá hoặc vùng giá]\nSTOP LOSS: [mức]\nMỤC TIÊU: [mức]\nLÝ DO CHÍNH: [2 câu ngắn]\nRỦI RO CẦN LƯU Ý: [1 câu]\n${personalOn?'NHẬN ĐỊNH CEO: [Hội đồng đồng ý hay bác bỏ — 1 câu ngắn]\n':''}ĐỒNG THUẬN HỘI ĐỒNG: [Cao / Trung bình / Thấp]`;
+
+    const verdict=await callClaude('Bạn là chủ tịch hội đồng đầu tư. Tổng hợp khách quan, súc tích, đúng format được yêu cầu.',[{role:'user',content:verdictPrompt}]);
+    removeTyping('verdict');
+    addMsg(null,verdict,0,true);
+    setProgress(100);
+    document.getElementById('topbar-status').textContent=`Hoàn thành · ${new Date().toLocaleTimeString('vi-VN')}`;
+
+  } catch(err){
+    AGENTS.forEach(a=>removeTyping(a.id)); removeTyping('verdict');
+    addSysMsg(`Lỗi: ${err.message}. Kiểm tra API key hoặc kết nối mạng.`);
+    setProgress(0);
+  }
+
+  isRunning=false;
+  document.getElementById('run-btn').disabled=false;
+  document.getElementById('run-btn').textContent='Phân tích lại';
+  AGENTS.forEach(a=>setDot(a.id,'idle'));
+}
+</script>
+</body>
+</html>
